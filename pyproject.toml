@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "riskengine"
+version = "0.1.0"
+description = "Value-at-Risk & drawdown analytics lab — historical, parametric, and Monte Carlo VaR/CVaR in pure stdlib Python"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Aditya" }]
+keywords = ["finance", "quant", "risk", "var", "cvar", "expected-shortfall", "drawdown", "monte-carlo"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = ["rich>=13"]
+
+[project.scripts]
+risk-engine = "riskengine.cli:main"
+
+[tool.setuptools]
+packages = ["riskengine"]
