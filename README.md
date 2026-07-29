@@ -62,6 +62,23 @@ python3 -m venv .venv
 └────────────────────────────┴────────────────────────────────┘
 ```
 
+## Reading the output
+
+Each row pairs **VaR** (the worst 1-in-N daily loss) with **CVaR** (the mean
+loss *beyond* that cut) at your chosen tail quantile `--alpha`. The three rows
+are the estimation engines:
+
+- **Historical** — what actually happened in your sample. No distributional
+  assumption, but noisy on short histories.
+- **Parametric (normal)** — the smooth closed-form answer *if* returns were
+  Gaussian; often the lowest row when the sample is calm.
+- **Monte Carlo** — simulated from the same normal model, so it converges to
+  the parametric row as paths increase. This is the row to keep when you later
+  swap in a fatter-tailed draw distribution.
+
+When the engines disagree, that's the story: a wide gap between historical and
+parametric VaR is the signature of fat tails in your data.
+
 ### Real data
 
 The sample file is OHLCV; load it (or any price CSV) directly:
