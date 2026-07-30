@@ -55,6 +55,10 @@ def normal_inv(p: float) -> float:
 
     Accurate to roughly 1e-9 for 0 < p < 1. Raises ValueError at the
     endpoints, which are never finite.
+
+    Acklam's rational approximation is used rather than a Newton solve
+    because it is closed-form and stays accurate down to p ~ 1e-16 --
+    exactly where the VaR tail lives. Example: normal_inv(0.05) ~ -1.6449.
     """
     if not 0.0 < p < 1.0:
         raise ValueError("p must be strictly between 0 and 1")
