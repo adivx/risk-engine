@@ -31,6 +31,11 @@ class TestHistoricalVar(unittest.TestCase):
         # alpha -> 1 means "the worst 9-in-10 outcome": the mildest loss.
         self.assertAlmostEqual(historical_var(returns, 0.9), 0.01)
 
+    def test_tiny_alpha_is_worst_loss(self):
+        returns = [-0.01, -0.02, -0.05]
+        # ceil(0.01 * 3) - 1 = 0 -> the single worst loss = 5%.
+        self.assertAlmostEqual(historical_var(returns, 0.01), 0.05)
+
     def test_empty_raises(self):
         with self.assertRaises(ValueError):
             historical_var([], 0.05)
@@ -134,6 +139,13 @@ class TestDrawdowns(unittest.TestCase):
     def test_no_underwater(self):
         length, _, _ = longest_drawdown_stretch([100.0, 101.0, 102.0])
         self.assertEqual(length, 0)
+
+    def test_entirely_underwater(self):
+        # Never above the running peak after the first obs -> underwater
+        # from index 1 through the end = 3 obs.
+        prices = [100.0, 90.0, 80.0, 70.0]
+        length, start, end = longest_drawdown_stretch(prices)
+        self.assertEqual((length, start, end), (3, 1, 3))
 
 
 if __name__ == "__main__":
