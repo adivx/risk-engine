@@ -12,6 +12,12 @@ Three estimation engines are offered:
   Monte Carlo — quantile of returns simulated from the fitted normal
                 model (smoother tail than the raw parametric quantile)
 
+When to use which engine: historical for the raw empirical answer,
+parametric for a smooth, sample-size-independent estimate, and Monte
+Carlo when the draw distribution will later be swapped for something
+fatter-tailed than the normal. A wide gap between historical and
+parametric VaR is the classic signal of fat tails in the sample.
+
 All VaR/CVaR are in the period units of the input series (daily unless
 the caller rescales). Drawdown analytics operate on price/wealth series
 directly. Everything here is pure stdlib.
