@@ -67,6 +67,13 @@ def load_prices_csv(path: str, name: str = "CSV") -> PriceSeries:
 
     Picks the ``close`` column for OHLCV files; otherwise the first
     numeric column. A leading non-numeric column is treated as dates.
+
+    Accepted schemas:
+      date,open,high,low,close,volume   -> uses the close column
+      date,close                         -> same
+      close                              -> bare single numeric column
+      price                              -> bare numeric, any header name
+    Raises ValueError for empty files or files with no numeric columns.
     """
     with open(path, newline="") as f:
         rows = list(csv.reader(f))
