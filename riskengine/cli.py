@@ -3,6 +3,11 @@
 Subcommands map one-to-one onto the analytics modules; the default
 ``risk-engine`` (no argument) runs the full report. Data is seeded
 synthetic by default and real data can be dropped in with ``--csv``.
+
+Example:
+  risk-engine                        # synthetic 5y report
+  risk-engine --csv sample_data/sample_ohlcv.csv --alpha 0.01
+  risk-engine chart --out drawdown.svg
 """
 
 import argparse
