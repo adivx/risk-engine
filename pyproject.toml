@@ -13,10 +13,16 @@ authors = [{ name = "Aditya" }]
 keywords = ["finance", "quant", "risk", "var", "cvar", "expected-shortfall", "drawdown", "monte-carlo"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Intended Audience :: Financial and Insurance Industry",
     "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Mathematics",
 ]
 dependencies = ["rich>=13"]
+
+[project.urls]
+Homepage = "https://github.com/adivx/risk-engine"
+Repository = "https://github.com/adivx/risk-engine"
 
 [project.scripts]
 risk-engine = "riskengine.cli:main"
