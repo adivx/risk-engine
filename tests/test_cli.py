@@ -29,6 +29,9 @@ class TestMain(unittest.TestCase):
                               "sample_data", "sample_ohlcv.csv")
         self.assertEqual(main(["--csv", sample]), 0)
 
+    def test_missing_csv_exits_nonzero(self):
+        self.assertNotEqual(main(["--csv", "/nonexistent/nope.csv"]), 0)
+
     def test_chart_writes_svg(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "dd.svg")
