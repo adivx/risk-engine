@@ -40,6 +40,7 @@ class TestMain(unittest.TestCase):
             with open(out) as f:
                 content = f.read()
             self.assertIn("<svg", content)
+            self.assertIn("<polyline", content)
 
     def test_version_flag(self):
         buf = io.StringIO()
