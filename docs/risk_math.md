@@ -35,3 +35,10 @@ The parametric and Monte Carlo engines assume daily returns are Gaussian. Real
 returns have fatter tails, so in stress periods those rows run *lower* than the
 historical one — read them together. A wide gap between historical and
 parametric VaR is the classic signature of fat tails.
+
+## Horizon scaling
+
+All metrics above are 1-day numbers. To scale to an N-day horizon under the
+parametric engine, scale the *volatility* by √N: VaR_N ≈ √N · VaR_1. The
+historical engine offers no such shortcut — resample the series at the target
+horizon instead, and remember that fat-tailed returns scale faster than √N.
