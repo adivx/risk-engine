@@ -56,6 +56,20 @@ class TestLoadPricesCsv(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_skips_rows_without_close(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as f:
+            f.write("date,open,high,low,close,volume\n")
+            f.write("2020-01-02,1,2,0.5,1.5,100\n")
+            f.write("2020-01-03,,,,\n")
+            f.write("2020-01-06,2,3,1.5,2.5,100\n")
+            path = f.name
+        try:
+            ps = load_prices_csv(path)
+            self.assertEqual(ps.prices, [1.5, 2.5])
+            self.assertEqual(ps.dates, ["2020-01-02", "2020-01-06"])
+        finally:
+            os.unlink(path)
+
     def test_empty_file_raises(self):
         with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False) as f:
             path = f.name
