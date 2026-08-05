@@ -13,6 +13,12 @@
   `cli` (surface).
 - Every new analytics function needs a docstring and a unittest.
 
+## Adding a new engine
+- One `(var, cvar)` function pair with the same signature as the existing ones.
+- Wire both into `var_estimate` and the CLI table.
+- A unittest on a known-value case, plus a cross-engine sanity check
+  (`tests/test_cross_engine.py`).
+
 ## Pull requests
 - Small, single-purpose commits. Back every claim with a test.
 - Keep the dependency footprint: no new third-party packages without
