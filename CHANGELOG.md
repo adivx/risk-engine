@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-08-05
+
+- Run via `python -m riskengine`; package marked typed (`py.typed`).
+- Friendly error message when a CSV path is missing.
+- Hardening tests: cross-engine consistency, `normal_inv` symmetry, drawdown
+  and CSV-loader edge cases.
+
 ## 0.1.0 — 2026-08-05
 
 - Three 1-day VaR/CVaR engines: historical, parametric (normal), Monte Carlo.
