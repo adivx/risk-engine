@@ -29,3 +29,6 @@ risk-engine = "riskengine.cli:main"
 
 [tool.setuptools]
 packages = ["riskengine"]
+
+[tool.setuptools.package-data]
+riskengine = ["py.typed"]
