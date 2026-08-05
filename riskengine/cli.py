@@ -246,11 +246,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
-    series = (load_prices_csv(args.csv)
-              if args.csv
-              else synthetic_equity_curve(seed=args.seed, years=args.years,
-                                          annual_mu=args.annual_mu,
-                                          annual_sigma=args.annual_sigma))
+    try:
+        series = (load_prices_csv(args.csv)
+                  if args.csv
+                  else synthetic_equity_curve(seed=args.seed, years=args.years,
+                                              annual_mu=args.annual_mu,
+                                              annual_sigma=args.annual_sigma))
+    except (OSError, ValueError) as exc:
+        print(f"risk-engine: {exc}", file=sys.stderr)
+        return 2
     bundle = (series, args.rf)
     _DISPATCH[args.command](bundle, args)
     return 0
