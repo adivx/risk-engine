@@ -42,10 +42,7 @@ class PriceSeries:
 
     def returns(self) -> List[float]:
         """Period-over-period returns (n_obs - 1 values)."""
-        return [
-            self.prices[t] / self.prices[t - 1] - 1.0
-            for t in range(1, len(self.prices))
-        ]
+        return [b / a - 1.0 for a, b in zip(self.prices, self.prices[1:])]
 
     def from_date(self) -> Optional[str]:
         return self.dates[0] if self.dates else None
