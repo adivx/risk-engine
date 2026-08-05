@@ -51,6 +51,10 @@ class TestNormalDist(unittest.TestCase):
         with self.assertRaises(ValueError):
             normal_inv(1.0)
 
+    def test_inverse_symmetry(self):
+        for p in (0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 0.999):
+            self.assertAlmostEqual(normal_inv(p), -normal_inv(1 - p), places=6)
+
     def test_pdf_peak(self):
         self.assertAlmostEqual(normal_pdf(0.0), 1.0 / math.sqrt(2.0 * math.pi))
         self.assertLess(normal_pdf(3.0), normal_pdf(0.0))
