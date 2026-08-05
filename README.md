@@ -36,6 +36,7 @@ longest continuous underwater stretch.
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/risk-engine
+.venv/bin/python -m riskengine   # same thing, via the module
 ```
 
 ```
@@ -120,3 +121,11 @@ usage: risk-engine [-h] [--csv PATH] [--seed SEED] [--years YEARS]
 
 `command` is one of `report` (default) or `chart`. Synthetic data is seeded and
 reproducible; `--alpha` sets the tail quantile for VaR/CVaR (default 5%).
+
+## Caveats
+
+- **1-day numbers.** VaR/CVaR are daily losses. For an N-day horizon scale
+  daily vol by √N under the parametric engine (fat tails scale faster); the
+  historical engine needs resampling instead.
+- **This is an analytics lab, not a risk system** — no stress testing,
+  scenario analysis, or position sizing.
