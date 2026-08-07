@@ -1,4 +1,12 @@
 # risk-engine
+<p align="center">
+  <a href="https://github.com/adivx/risk-engine/actions"><img src="https://img.shields.io/github/actions/workflow/status/adivx/risk-engine/ci.yml?branch=main&label=CI&logo=github" /></a>
+  <img src="https://img.shields.io/github/license/adivx/risk-engine" />
+  <img src="https://img.shields.io/github/last-commit/adivx/risk-engine" />
+  <img src="https://img.shields.io/github/repo-size/adivx/risk-engine" />
+</p>
+
+
 
 A dependency-light **Value-at-Risk & drawdown analytics lab** for Python 3.9+.
 Point it at a price series -- synthetic or real -- and get back 1-day VaR and
