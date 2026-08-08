@@ -11,6 +11,7 @@ Example:
 """
 
 import argparse
+import json
 import sys
 from typing import Any, Callable, Dict, Tuple
 
@@ -66,7 +67,7 @@ def _annualized_return(series: PriceSeries) -> float:
     return (1.0 + total) ** (1.0 / years) - 1.0 if years > 0 else 0.0
 
 
-def _report(bundle: Tuple[PriceSeries, float]) -> dict:
+def _report(bundle: Tuple[PriceSeries, float], alpha: float = 0.05) -> dict:
     series, rf_annual = bundle
     returns = series.returns()
     mu_d = sum(returns) / len(returns)
@@ -78,7 +79,38 @@ def _report(bundle: Tuple[PriceSeries, float]) -> dict:
         "vol_a": annualize_daily_std(vol_d),
         "sharpe": _sharpe(mu_d, vol_d, rf_annual, series.periods_per_year),
         "annual_return": _annualized_return(series),
-        "var": var_estimate(returns, alpha=0.05, seed=0),
+        "var": var_estimate(returns, alpha=alpha, seed=0),
+    }
+
+
+def _collect(bundle: Tuple[PriceSeries, float], args) -> dict:
+    """Everything the report shows, as a JSON-serializable dict.
+
+    The machine-readable payload behind both the rich tables and the
+    ``--json`` path, so they can never drift apart.
+    """
+    series, rf_annual = bundle
+    r = _report(bundle, alpha=args.alpha)
+    dd, peak_i, trough_i = max_drawdown(series.prices)
+    days, start_i, end_i = longest_drawdown_stretch(series.prices)
+    return {
+        "version": __version__,
+        "alpha": args.alpha,
+        "rf": rf_annual,
+        "series": _describe_series(series),
+        "annual_return": r["annual_return"],
+        "annual_vol": r["vol_a"],
+        "sharpe": r["sharpe"],
+        "var": r["var"],
+        "drawdown": {
+            "max": dd,
+            "max_peak_idx": peak_i,
+            "max_trough_idx": trough_i,
+            "current": current_drawdown(series.prices),
+            "longest_stretch_obs": days,
+            "longest_start_idx": start_i,
+            "longest_end_idx": end_i,
+        },
     }
 
 
@@ -92,24 +124,24 @@ def _sharpe(mu_d: float, vol_d: float, rf_annual: float, periods: int = 252) -> 
 
 def _cmd_report(bundle, args):
     series, rf_annual = bundle
-    r = _report(bundle)
+    data = _collect(bundle, args)
 
-    # Drawdown stats on the price series.
-    dd, peak_i, trough_i = max_drawdown(series.prices)
-    days, start_i, end_i = longest_drawdown_stretch(series.prices)
-    cur = current_drawdown(series.prices)
+    # Machine-readable path — the full report as JSON, no rich output.
+    if args.json:
+        print(json.dumps(data, indent=2, sort_keys=True))
+        return
 
     summary = Panel(
         f"[cyan]risk-engine {__version__}[/cyan] — VaR & drawdown analytics\n"
         f"{_describe_series(series)}\n"
-        f"annual return [bold]{_signed_pct(r['annual_return'])}[/bold] · "
-        f"vol [bold]{_pct(r['vol_a'])}[/bold] · "
-        f"Sharpe (rf {rf_annual:.2%}) [bold]{r['sharpe']:.2f}[/bold]",
+        f"annual return [bold]{_signed_pct(data['annual_return'])}[/bold] · "
+        f"vol [bold]{_pct(data['annual_vol'])}[/bold] · "
+        f"Sharpe (rf {rf_annual:.2%}) [bold]{data['sharpe']:.2f}[/bold]",
         border_style="cyan",
     )
     console.print(summary)
 
-    risk = r["var"]
+    risk = data["var"]
     t = Table(title=f"Tail risk — 1-day VaR / CVaR (α = {args.alpha:.0%})",
               header_style="bold red")
     t.add_column("Engine", style="bold")
@@ -123,15 +155,17 @@ def _cmd_report(bundle, args):
               _loss(risk["monte_carlo"]["cvar"]))
     console.print(t)
 
+    dd = data["drawdown"]
     dd_t = Table(title="Drawdown analytics", header_style="bold magenta")
     dd_t.add_column("Metric", style="bold")
     dd_t.add_column("Value")
     dd_t.add_row("Max drawdown",
-                 f"[red]{_pct(dd, 2)}[/red]  "
-                 f"(obs {peak_i:,} → obs {trough_i:,})")
-    dd_t.add_row("Current drawdown", _pct(cur, 2))
+                 f"[red]{_pct(dd['max'], 2)}[/red]  "
+                 f"(obs {dd['max_peak_idx']:,} → obs {dd['max_trough_idx']:,})")
+    dd_t.add_row("Current drawdown", _pct(dd["current"], 2))
     dd_t.add_row("Longest underwater stretch",
-                 f"{days:,} obs  (obs {start_i:,} → obs {end_i:,})")
+                 f"{dd['longest_stretch_obs']:,} obs  "
+                 f"(obs {dd['longest_start_idx']:,} → obs {dd['longest_end_idx']:,})")
     console.print(dd_t)
 
     console.print(
@@ -240,6 +274,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="tail quantile for VaR/CVaR (default 0.05)")
     p.add_argument("--out", metavar="PATH", default="drawdown.svg",
                    help="SVG output path for the chart (default drawdown.svg)")
+    p.add_argument("--json", action="store_true",
+                   help="print the report as JSON instead of rich tables "
+                        "(machine-readable)")
     p.add_argument("--version", action="version", version=f"risk-engine {__version__}")
     return p
 

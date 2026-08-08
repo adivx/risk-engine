@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -48,6 +49,38 @@ class TestMain(unittest.TestCase):
             main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(__version__, buf.getvalue())
+
+
+class TestJsonReport(unittest.TestCase):
+    def test_json_report_is_valid_and_complete(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertEqual(main(["--seed", "1", "--years", "1", "--json"]), 0)
+        data = json.loads(buf.getvalue())
+        self.assertEqual(data["alpha"], 0.05)
+        self.assertEqual(data["version"], __version__)
+        self.assertIn("var", data)
+        self.assertIn("drawdown", data)
+        # Every VaR engine exposes both var and cvar.
+        for engine in ("historical", "parametric", "monte_carlo"):
+            self.assertIn("var", data["var"][engine])
+            self.assertIn("cvar", data["var"][engine])
+
+    def test_json_defaults_to_false(self):
+        self.assertFalse(build_parser().parse_args([]).json)
+
+    def test_alpha_flag_changes_the_computed_var(self):
+        # Regression guard: --alpha must reach var_estimate, not just the
+        # table title.
+        def historical_var(alpha):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                main(["--seed", "1", "--years", "1", "--json",
+                      "--alpha", str(alpha)])
+            return json.loads(buf.getvalue())["var"]["historical"]["var"]
+
+        self.assertNotAlmostEqual(historical_var(0.01), historical_var(0.05),
+                                  places=6)
 
 
 if __name__ == "__main__":
