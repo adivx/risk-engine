@@ -30,6 +30,40 @@ def sample_std(xs: Sequence[float]) -> float:
     return math.sqrt(sample_variance(xs))
 
 
+def sample_skew(xs: Sequence[float]) -> float:
+    """Sample skewness — the normalized third central moment.
+
+    Positive for a right-tailed sample, negative for a left-tailed one,
+    0.0 for a symmetric (or degenerate) series.
+    """
+    m = mean(xs)
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    m2 = sum((x - m) ** 2 for x in xs) / n
+    if m2 == 0.0:
+        return 0.0
+    m3 = sum((x - m) ** 3 for x in xs) / n
+    return m3 / m2 ** 1.5
+
+
+def sample_excess_kurtosis(xs: Sequence[float]) -> float:
+    """Sample excess kurtosis — normalized fourth moment, minus 3.
+
+    Zero for a normal sample, positive for fat-tailed, negative for
+    flat-topped. "Excess" form so a Gaussian collapses to exactly 0.0.
+    """
+    m = mean(xs)
+    n = len(xs)
+    if n < 2:
+        return 0.0
+    m2 = sum((x - m) ** 2 for x in xs) / n
+    if m2 == 0.0:
+        return 0.0
+    m4 = sum((x - m) ** 4 for x in xs) / n
+    return m4 / m2 ** 2.0 - 3.0
+
+
 def annualize_daily_mean(mu_daily: float, periods: int = PERIODS_PER_YEAR) -> float:
     """Arithmetic annualization of a daily mean return."""
     return mu_daily * periods

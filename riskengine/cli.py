@@ -155,6 +155,7 @@ def _cmd_report(bundle, args):
               _loss(risk["parametric"]["cvar"]))
     t.add_row("Monte Carlo", _loss(risk["monte_carlo"]["var"]),
               _loss(risk["monte_carlo"]["cvar"]))
+    t.add_row("Cornish-Fisher", _loss(risk["cornish_fisher"]["var"]), "—")
     console.print(t)
 
     dd = data["drawdown"]

@@ -8,6 +8,8 @@ from riskengine.stats import (
     normal_cdf,
     normal_inv,
     normal_pdf,
+    sample_excess_kurtosis,
+    sample_skew,
     sample_std,
     sample_variance,
 )
@@ -25,6 +27,34 @@ class TestMeanAndVariance(unittest.TestCase):
 
     def test_sample_std(self):
         self.assertAlmostEqual(sample_std([0, 1, 2, 3, 4]), math.sqrt(2.5))
+
+
+class TestHigherMoments(unittest.TestCase):
+    def test_skew_zero_for_symmetric(self):
+        self.assertAlmostEqual(sample_skew([-2.0, -1.0, 1.0, 2.0]), 0.0)
+
+    def test_skew_sign(self):
+        self.assertLess(sample_skew([-3.0, -2.0, -1.0, 0.0, 0.1, 0.2]), 0.0)
+        self.assertGreater(sample_skew([3.0, 2.0, 1.0, 0.0, -0.1, -0.2]), 0.0)
+
+    def test_skew_degenerate(self):
+        self.assertEqual(sample_skew([5.0, 5.0, 5.0]), 0.0)
+        self.assertEqual(sample_skew([1.0]), 0.0)
+
+    def test_excess_kurtosis_positive_for_fat_tails(self):
+        # Cauchy-like spike in the middle vs a uniform spread.
+        fat = [-10.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+        thin = [-6.0, -4.0, -2.0, 2.0, 4.0, 6.0]
+        self.assertGreater(sample_excess_kurtosis(fat),
+                           sample_excess_kurtosis(thin))
+
+    def test_excess_kurtosis_known_value(self):
+        # The discrete -3/0/+3 distribution: m4/m2^2 = 54/36 = 1.5,
+        # so excess kurtosis = 1.5 - 3 = -1.5 (platykurtic).
+        self.assertAlmostEqual(sample_excess_kurtosis([-3, 0, 3]), -1.5)
+
+    def test_excess_kurtosis_degenerate(self):
+        self.assertEqual(sample_excess_kurtosis([5.0, 5.0]), 0.0)
 
 
 class TestAnnualization(unittest.TestCase):

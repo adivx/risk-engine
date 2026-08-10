@@ -19,13 +19,17 @@ class TestPublicApiContract(unittest.TestCase):
     def test_var_estimate_returns_all_engines(self):
         ps = load_prices_csv(SAMPLE)
         est = var_estimate(ps.returns())
-        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo"})
+        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo",
+                                    "cornish_fisher"})
 
     def test_losses_are_positive(self):
         ps = load_prices_csv(SAMPLE)
-        for engine in var_estimate(ps.returns()).values():
-            self.assertGreater(engine["var"], 0.0)
-            self.assertGreater(engine["cvar"], 0.0)
+        est = var_estimate(ps.returns())
+        for engine in ("historical", "parametric", "monte_carlo"):
+            self.assertGreater(est[engine]["var"], 0.0)
+            self.assertGreater(est[engine]["cvar"], 0.0)
+        # Cornish-Fisher exposes a VaR-only row (no closed-form CVaR).
+        self.assertGreater(est["cornish_fisher"]["var"], 0.0)
 
     def test_historical_cvar_at_least_var(self):
         ps = load_prices_csv(SAMPLE)

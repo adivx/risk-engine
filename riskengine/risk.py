@@ -27,7 +27,13 @@ import math
 import random
 from typing import List, Sequence, Tuple
 
-from .stats import normal_inv, normal_pdf, sample_std
+from .stats import (
+    normal_inv,
+    normal_pdf,
+    sample_excess_kurtosis,
+    sample_skew,
+    sample_std,
+)
 
 
 # ------------------------------------------------------------------ VaR / CVaR
@@ -102,12 +108,72 @@ def monte_carlo_cvar(mu_daily: float, vol_daily: float, alpha: float = 0.05,
     return historical_cvar(sims, alpha)
 
 
+def cornish_fisher_var(returns: Sequence[float], alpha: float = 0.05) -> float:
+    """VaR under the Cornish-Fisher expansion (Zangari): the normal
+    quantile corrected for the sample's own skewness and excess kurtosis.
+
+    The correction is exact for the normal (skew ~ 0, kurtosis ~ 0), so
+    the gap to the parametric engine is precisely the fat-tail signal the
+    historical/parametric spread flags — here made explicit rather than
+    inferred.
+    """
+    _validate_alpha(alpha)
+    if not returns:
+        raise ValueError("returns series is empty")
+    mu = sum(returns) / len(returns)
+    vol = sample_std(returns)
+    z = normal_inv(alpha)
+    s = sample_skew(returns)
+    k = sample_excess_kurtosis(returns)
+    z_cf = (z
+            + (z * z - 1.0) * s / 6.0
+            + (z ** 3 - 3.0 * z) * k / 24.0
+            - (2.0 * z ** 3 - 5.0 * z) * s * s / 36.0)
+    return -(mu + z_cf * vol)
+
+
+def _ln(p: float) -> float:
+    """log with a defined value at 0 (the log-0 edge in the Kupiec test)."""
+    return 0.0 if p == 0.0 else math.log(p)
+
+
+def kupiec_pof(returns: Sequence[float], var: float, alpha: float = 0.05) -> dict:
+    """Kupiec proportion-of-failures (POF) backtest of a VaR model.
+
+    Counts realized breaches (-r > var) and tests whether the observed
+    exceedance rate matches the model's alpha via the likelihood-ratio
+    statistic, which is asymptotically chi-squared(1). A well-calibrated
+    model yields a high p_value; a model that breaches too often (or
+    never) is flagged.
+
+    Returns {"breaches", "expected", "exceedance_rate", "lr", "p_value"}.
+    """
+    _validate_alpha(alpha)
+    if not returns:
+        raise ValueError("returns series is empty")
+    n = len(returns)
+    x = sum(1.0 for r in returns if -r > var)
+    p = x / n
+    lr = -2.0 * ((n - x) * _ln(1.0 - alpha) + x * _ln(alpha)
+                 - (n - x) * _ln(1.0 - p) - x * _ln(p))
+    p_value = 1.0 - math.erf(math.sqrt(lr / 2.0))  # chi-square(1) survival
+    return {
+        "breaches": int(x),
+        "expected": alpha * n,
+        "exceedance_rate": p,
+        "lr": lr,
+        "p_value": p_value,
+    }
+
+
 def var_estimate(returns: Sequence[float], alpha: float = 0.05,
                  n_paths: int = 10_000, seed: int = 42) -> dict:
     """One-call risk report for a return series.
 
     Returns a dict keyed by engine name ("historical", "parametric",
-    "monte_carlo"), each with "var" and "cvar" (losses, > 0).
+    "monte_carlo", "cornish_fisher"), each with "var" and "cvar"
+    (losses, > 0). The Cornish-Fisher engine has no closed-form CVaR,
+    so it exposes "var" only.
     """
     _validate_alpha(alpha)
     if not returns:
@@ -126,6 +192,9 @@ def var_estimate(returns: Sequence[float], alpha: float = 0.05,
         "monte_carlo": {
             "var": monte_carlo_var(mu, vol, alpha, n_paths, seed),
             "cvar": monte_carlo_cvar(mu, vol, alpha, n_paths, seed),
+        },
+        "cornish_fisher": {
+            "var": cornish_fisher_var(returns, alpha),
         },
     }
 

@@ -37,10 +37,13 @@ class TestCrossEngineConsistency(unittest.TestCase):
         rng = random.Random(1)
         returns = [rng.gauss(0.0002, 0.012) for _ in range(2000)]
         est = var_estimate(returns, alpha=0.05)
-        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo"})
-        for engine in est.values():
-            self.assertGreater(engine["var"], 0.0)
-            self.assertGreater(engine["cvar"], engine["var"])
+        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo",
+                                    "cornish_fisher"})
+        for engine in ("historical", "parametric", "monte_carlo"):
+            self.assertGreater(est[engine]["var"], 0.0)
+            self.assertGreater(est[engine]["cvar"], est[engine]["var"])
+        # Cornish-Fisher converges to the normal VaR on a Gaussian sample.
+        self.assertGreater(est["cornish_fisher"]["var"], 0.0)
 
 
 if __name__ == "__main__":

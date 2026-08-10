@@ -1,11 +1,14 @@
 import math
+import random
 import unittest
 
 from riskengine.risk import (
+    cornish_fisher_var,
     current_drawdown,
     drawdown_series,
     historical_cvar,
     historical_var,
+    kupiec_pof,
     longest_drawdown_stretch,
     max_drawdown,
     monte_carlo_cvar,
@@ -14,6 +17,7 @@ from riskengine.risk import (
     parametric_var,
     var_estimate,
 )
+from riskengine.stats import sample_std
 
 
 class TestHistoricalVar(unittest.TestCase):
@@ -95,14 +99,71 @@ class TestMonteCarlo(unittest.TestCase):
 class TestVarEstimate(unittest.TestCase):
     def test_shape(self):
         est = var_estimate([0.01, -0.01, 0.02, -0.02, 0.005, -0.005], alpha=0.05)
-        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo"})
-        for engine in est.values():
-            self.assertIn("var", engine)
-            self.assertIn("cvar", engine)
+        self.assertEqual(set(est), {"historical", "parametric", "monte_carlo",
+                                    "cornish_fisher"})
+        # The three classic engines expose both var and cvar...
+        for engine in ("historical", "parametric", "monte_carlo"):
+            self.assertIn("var", est[engine])
+            self.assertIn("cvar", est[engine])
+        # ...Cornish-Fisher is VaR-only (no closed-form CVaR).
+        self.assertIn("var", est["cornish_fisher"])
 
     def test_empty_raises(self):
         with self.assertRaises(ValueError):
             var_estimate([])
+
+
+class TestCornishFisher(unittest.TestCase):
+    def test_near_gaussian_matches_parametric(self):
+        # For a roughly symmetric sample, skew/kurtosis ~ 0 and the
+        # Cornish-Fisher expansion collapses onto the normal VaR.
+        returns = [0.0005, -0.001, 0.002, -0.002, 0.0015, -0.0005,
+                   0.003, -0.003, 0.001, -0.0015, 0.0005, 0.0025]
+        cf = cornish_fisher_var(returns, 0.05)
+        mu = sum(returns) / len(returns)
+        par = parametric_var(mu, sample_std(returns), 0.05)
+        self.assertAlmostEqual(cf, par, places=3)
+
+    def test_left_skew_increases_var(self):
+        # A left-skewed (crash-prone) series must show a larger VaR than
+        # its own normal fit: the negative skew pushes the quantile down.
+        returns = [-0.08, -0.06, -0.04, 0.01, 0.02, 0.03, 0.05, 0.07]
+        mu = sum(returns) / len(returns)
+        par = parametric_var(mu, sample_std(returns), 0.05)
+        self.assertGreater(cornish_fisher_var(returns, 0.05), par)
+
+    def test_empty_raises(self):
+        with self.assertRaises(ValueError):
+            cornish_fisher_var([])
+
+
+class TestKupiec(unittest.TestCase):
+    def test_calibrated_model_passes(self):
+        # A correct 5% normal VaR on normal draws: breach rate ~ alpha
+        # and the POF test does not reject.
+        rng = random.Random(3)
+        returns = [rng.gauss(0.0, 1.0) for _ in range(2000)]
+        var = parametric_var(0.0, 1.0, 0.05)
+        res = kupiec_pof(returns, var, 0.05)
+        self.assertAlmostEqual(res["exceedance_rate"], 0.05, delta=0.02)
+        self.assertGreater(res["p_value"], 0.01)
+
+    def test_optimistic_var_rejected(self):
+        # A 0% VaR on a series that actually loses 2% regularly: ~33%
+        # breaches against an expected 5% -> p_value collapses.
+        returns = [-0.02, 0.01, 0.03] * 100
+        res = kupiec_pof(returns, 0.0, 0.05)
+        self.assertGreater(res["exceedance_rate"], 0.10)
+        self.assertLess(res["p_value"], 0.001)
+
+    def test_shape(self):
+        res = kupiec_pof([0.01, -0.02, 0.03], 0.0, 0.05)
+        self.assertEqual(set(res), {"breaches", "expected", "exceedance_rate",
+                                    "lr", "p_value"})
+
+    def test_empty_raises(self):
+        with self.assertRaises(ValueError):
+            kupiec_pof([], 1.0)
 
 
 class TestDrawdowns(unittest.TestCase):
