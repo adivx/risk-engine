@@ -100,6 +100,10 @@ class TestVarEstimate(unittest.TestCase):
             self.assertIn("var", engine)
             self.assertIn("cvar", engine)
 
+    def test_empty_raises(self):
+        with self.assertRaises(ValueError):
+            var_estimate([])
+
 
 class TestDrawdowns(unittest.TestCase):
     def test_drawdown_series_tracks_running_peak(self):

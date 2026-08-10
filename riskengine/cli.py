@@ -70,6 +70,8 @@ def _annualized_return(series: PriceSeries) -> float:
 def _report(bundle: Tuple[PriceSeries, float], alpha: float = 0.05) -> dict:
     series, rf_annual = bundle
     returns = series.returns()
+    if not returns:
+        raise ValueError("returns series is empty")
     mu_d = sum(returns) / len(returns)
     vol_d = sample_std(returns)
     return {
@@ -289,11 +291,11 @@ def main(argv=None) -> int:
                   else synthetic_equity_curve(seed=args.seed, years=args.years,
                                               annual_mu=args.annual_mu,
                                               annual_sigma=args.annual_sigma))
+        bundle = (series, args.rf)
+        _DISPATCH[args.command](bundle, args)
     except (OSError, ValueError) as exc:
         print(f"risk-engine: {exc}", file=sys.stderr)
         return 2
-    bundle = (series, args.rf)
-    _DISPATCH[args.command](bundle, args)
     return 0
 
 

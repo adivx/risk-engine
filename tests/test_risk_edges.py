@@ -2,7 +2,20 @@
 
 import unittest
 
-from riskengine.risk import current_drawdown, longest_drawdown_stretch, max_drawdown
+from riskengine.risk import (
+    current_drawdown,
+    drawdown_series,
+    longest_drawdown_stretch,
+    max_drawdown,
+)
+
+
+class TestEmptySeries(unittest.TestCase):
+    def test_empty_prices_raise_value_error(self):
+        for fn in (drawdown_series, max_drawdown, current_drawdown,
+                   longest_drawdown_stretch):
+            with self.assertRaises(ValueError):
+                fn([])
 
 
 class TestDrawdownEdges(unittest.TestCase):

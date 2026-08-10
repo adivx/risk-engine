@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 
 from riskengine import __version__
 from riskengine.cli import build_parser, main
@@ -49,6 +49,21 @@ class TestMain(unittest.TestCase):
             main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(__version__, buf.getvalue())
+
+    def test_bad_alpha_returns_clean_error(self):
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = main(["--seed", "1", "--years", "1", "--alpha", "1.5"])
+        self.assertEqual(code, 2)
+        self.assertIn("alpha", err.getvalue())
+        self.assertNotIn("Traceback", err.getvalue())
+
+    def test_zero_years_returns_clean_error(self):
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = main(["--seed", "1", "--years", "0"])
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", err.getvalue())
 
 
 class TestJsonReport(unittest.TestCase):

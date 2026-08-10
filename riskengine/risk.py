@@ -109,6 +109,9 @@ def var_estimate(returns: Sequence[float], alpha: float = 0.05,
     Returns a dict keyed by engine name ("historical", "parametric",
     "monte_carlo"), each with "var" and "cvar" (losses, > 0).
     """
+    _validate_alpha(alpha)
+    if not returns:
+        raise ValueError("returns series is empty")
     mu = sum(returns) / len(returns)
     vol = sample_std(returns)
     return {
@@ -131,6 +134,8 @@ def var_estimate(returns: Sequence[float], alpha: float = 0.05,
 
 def drawdown_series(prices: Sequence[float]) -> List[float]:
     """Per-point drawdown vs the running peak (<= 0 for every point)."""
+    if not prices:
+        raise ValueError("prices series is empty")
     peak = prices[0]
     out = []
     for p in prices:
@@ -144,6 +149,8 @@ def max_drawdown(prices: Sequence[float]) -> Tuple[float, int, int]:
 
     dd <= 0; for a monotone-up series it is exactly 0.0.
     """
+    if not prices:
+        raise ValueError("prices series is empty")
     dd = 0.0
     peak = prices[0]
     peak_idx = trough_idx = 0
