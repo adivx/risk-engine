@@ -28,11 +28,16 @@ Fourth piece of a quant portfolio:
 **VaR** is reported as a *loss* (positive number): a 1-day 95% VaR of 2.1%
 means a 2.1% loss is the worst 1-in-20 daily outcome under the model. **CVaR**
 (expected shortfall) is the mean loss *beyond* the VaR cut -- it captures how
-bad the tail actually is, not just where it starts. Three engines estimate it:
+bad the tail actually is, not just where it starts. Four engines estimate it:
 
 - **Historical** -- the empirical quantile of observed returns; no distributional assumption.
 - **Parametric** -- a normal model fitted to the sample mean/vol; VaR = -(mu + z_alpha * sigma).
 - **Monte Carlo** -- the quantile of returns simulated from the fitted normal model (smoother tail than the raw parametric quantile).
+- **Cornish-Fisher** -- the normal quantile corrected for the sample's skewness and excess kurtosis, so it *models* fat tails (VaR-only; no closed-form CVaR).
+
+A **Kupiec POF backtest** validates any of the above: it counts realized
+breaches and reports the exceedance rate and a likelihood-ratio p-value, so
+you can tell whether a VaR number is honest, not just computed.
 
 Drawdown analytics track peak-to-trough declines on the price series directly:
 max drawdown (with the peak/trough locations), current drawdown, and the
@@ -49,7 +54,7 @@ python3 -m venv .venv
 
 ```
 ╭──────────────────────────────────────────────────────────────────────────────╮
-│ risk-engine 0.1.0 -- VaR & drawdown analytics                               │
+│ risk-engine 0.2.0 -- VaR & drawdown analytics                               │
 │ Synthetic - 1,261 obs - 2021-08-06 to 2026-06-04                            │
 │ annual return -0.29% - vol 16.0% - Sharpe (rf 3.00%) -0.13                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
@@ -60,6 +65,7 @@ python3 -m venv .venv
 │ Historical          │ -1.63% │ -2.04% │
 │ Parametric (normal) │ -1.65% │ -2.07% │
 │ Monte Carlo         │ -1.64% │ -2.04% │
+│ Cornish-Fisher      │ -1.63% │ —      │
 └─────────────────────┴────────┴────────┘
                       Drawdown analytics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -74,8 +80,8 @@ python3 -m venv .venv
 ## Reading the output
 
 Each row pairs **VaR** (the worst 1-in-N daily loss) with **CVaR** (the mean
-loss *beyond* that cut) at your chosen tail quantile `--alpha`. The three rows
-are the estimation engines:
+loss *beyond* that cut) at your chosen tail quantile `--alpha`. The rows are
+the estimation engines:
 
 - **Historical** — what actually happened in your sample. No distributional
   assumption, but noisy on short histories.
@@ -84,9 +90,13 @@ are the estimation engines:
 - **Monte Carlo** — simulated from the same normal model, so it converges to
   the parametric row as paths increase. This is the row to keep when you later
   swap in a fatter-tailed draw distribution.
+- **Cornish-Fisher** — VaR-only: the parametric quantile shifted by the
+  sample's own skew/kurtosis, so it grows above parametric VaR exactly when
+  the tails are fat.
 
 When the engines disagree, that's the story: a wide gap between historical and
-parametric VaR is the signature of fat tails in your data.
+parametric VaR is the signature of fat tails — and the Cornish-Fisher row makes
+that gap explicit.
 
 ### Real data
 
