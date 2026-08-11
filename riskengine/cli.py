@@ -38,6 +38,7 @@ console = Console()
 
 
 def _pct(x: float, nd: int = 1) -> str:
+    """Format a decimal as a percentage string, e.g. ``0.052 -> "5.2%"``."""
     return f"{x * 100:.{nd}f}%"
 
 
