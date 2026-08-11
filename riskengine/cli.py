@@ -71,6 +71,8 @@ def _annualized_return(series: PriceSeries) -> float:
 
 
 def _report(bundle: Tuple[PriceSeries, float], alpha: float = 0.05) -> dict:
+    """Daily analytics for a (series, risk-free) bundle: moments, annualized
+    metrics, Sharpe, and 1-day VaR."""
     series, rf_annual = bundle
     returns = series.returns()
     if not returns:
