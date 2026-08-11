@@ -293,6 +293,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
+    """CLI entry point; returns a process exit code (0 ok, 2 on input errors)."""
     args = build_parser().parse_args(argv)
     try:
         series = (load_prices_csv(args.csv)
