@@ -39,6 +39,7 @@ from .stats import (
 # ------------------------------------------------------------------ VaR / CVaR
 
 def _validate_alpha(alpha: float) -> None:
+    """Raise ValueError unless ``alpha`` is strictly between 0 and 1."""
     if not 0.0 < alpha < 1.0:
         raise ValueError("alpha must be strictly between 0 and 1")
 
