@@ -54,6 +54,7 @@ def _loss(x: float, nd: int = 2) -> str:
 
 
 def _describe_series(series: PriceSeries) -> str:
+    """One-line summary of a series: name, observation count, date span."""
     lo = series.from_date() or f"n={series.n_obs:,}"
     hi = series.to_date() or ""
     span = f"{lo} → {hi}" if hi else lo
