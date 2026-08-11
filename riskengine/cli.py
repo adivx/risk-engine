@@ -184,6 +184,7 @@ def _cmd_report(bundle, args):
 
 
 def _cmd_chart(bundle, args):
+    """Command handler: render the drawdown chart SVG to disk."""
     series, _ = bundle
     out = drawdown_svg(series.prices, series.dates, out=args.out)
     console.print(f"Wrote [bold]{out}[/bold] — open it in a browser (or add it to a README).")
