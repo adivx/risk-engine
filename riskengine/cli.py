@@ -130,6 +130,7 @@ def _sharpe(mu_d: float, vol_d: float, rf_annual: float, periods: int = 252) -> 
 # ---------------------------------------------------------------- commands
 
 def _cmd_report(bundle, args):
+    """Command handler: print the rich report, or the JSON payload with --json."""
     series, rf_annual = bundle
     data = _collect(bundle, args)
 
