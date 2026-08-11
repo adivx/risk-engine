@@ -38,6 +38,7 @@ class PriceSeries:
 
     @property
     def n_obs(self) -> int:
+        """Number of observations in the series."""
         return len(self.prices)
 
     def returns(self) -> List[float]:
@@ -45,13 +46,16 @@ class PriceSeries:
         return [b / a - 1.0 for a, b in zip(self.prices, self.prices[1:])]
 
     def from_date(self) -> Optional[str]:
+        """First date in the series, or None when it has no dates."""
         return self.dates[0] if self.dates else None
 
     def to_date(self) -> Optional[str]:
+        """Last date in the series, or None when it has no dates."""
         return self.dates[-1] if self.dates else None
 
 
 def _is_float(s: str) -> bool:
+    """True if ``s`` parses as a float (guards the CSV loader's numeric probe)."""
     try:
         float(s)
         return True
