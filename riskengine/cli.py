@@ -43,6 +43,7 @@ def _pct(x: float, nd: int = 1) -> str:
 
 
 def _signed_pct(x: float, nd: int = 2) -> str:
+    """Format a decimal as a signed percentage, e.g. ``-0.02 -> "-2.00%"``."""
     return f"{x * 100:+.{nd}f}%"
 
 
