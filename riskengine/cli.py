@@ -261,6 +261,7 @@ _DISPATCH: Dict[str, Callable] = {
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the risk-engine CLI argument parser."""
     p = argparse.ArgumentParser(
         prog="risk-engine",
         description="Value-at-Risk & drawdown analytics lab — historical, "
