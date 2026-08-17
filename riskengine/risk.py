@@ -49,6 +49,16 @@ def historical_var(returns: Sequence[float], alpha: float = 0.05) -> float:
 
     The alpha-quantile of losses, computed as the k-th worst return
     where k = ceil(alpha * n). No distributional assumption.
+
+    Args:
+        returns: Sequence of period returns (can be negative/positive).
+        alpha: Tail quantile (e.g., 0.05 for 95% VaR), strictly in (0, 1).
+
+    Returns:
+        Positive number = loss at the alpha quantile.
+
+    Raises:
+        ValueError: If returns is empty or alpha not in (0, 1).
     """
     _validate_alpha(alpha)
     s = sorted(returns)
@@ -59,7 +69,18 @@ def historical_var(returns: Sequence[float], alpha: float = 0.05) -> float:
 
 
 def historical_cvar(returns: Sequence[float], alpha: float = 0.05) -> float:
-    """Expected shortfall: mean loss beyond the historical VaR cut."""
+    """Expected shortfall (CVaR): mean loss beyond the historical VaR cut.
+
+    Args:
+        returns: Sequence of period returns.
+        alpha: Tail quantile (e.g., 0.05), strictly in (0, 1).
+
+    Returns:
+        Positive number = average loss in the worst alpha-fraction of outcomes.
+
+    Raises:
+        ValueError: If returns is empty or alpha not in (0, 1).
+    """
     _validate_alpha(alpha)
     s = sorted(returns)
     if not s:
@@ -69,7 +90,19 @@ def historical_cvar(returns: Sequence[float], alpha: float = 0.05) -> float:
 
 
 def parametric_var(mu_daily: float, vol_daily: float, alpha: float = 0.05) -> float:
-    """VaR under normality: −(μ + z_α σ), a loss so > 0 for small alpha."""
+    """VaR under normality: −(μ + z_α σ), a loss so > 0 for small alpha.
+
+    Args:
+        mu_daily: Mean daily return.
+        vol_daily: Standard deviation of daily returns.
+        alpha: Tail quantile in (0, 1).
+
+    Returns:
+        Positive number = loss at the alpha quantile under normal model.
+
+    Raises:
+        ValueError: If alpha not in (0, 1).
+    """
     _validate_alpha(alpha)
     z = normal_inv(alpha)
     return -(mu_daily + z * vol_daily)
@@ -80,6 +113,17 @@ def parametric_cvar(mu_daily: float, vol_daily: float, alpha: float = 0.05) -> f
 
     Closed form for the normal model (the hazard-weighted tail). φ is
     the standard-normal density, z_α the alpha-quantile.
+
+    Args:
+        mu_daily: Mean daily return.
+        vol_daily: Standard deviation of daily returns.
+        alpha: Tail quantile in (0, 1).
+
+    Returns:
+        Positive number = expected loss beyond the VaR cut under normal model.
+
+    Raises:
+        ValueError: If alpha not in (0, 1).
     """
     _validate_alpha(alpha)
     z = normal_inv(alpha)
@@ -88,7 +132,17 @@ def parametric_cvar(mu_daily: float, vol_daily: float, alpha: float = 0.05) -> f
 
 def _simulate_returns(mu_daily: float, vol_daily: float,
                       n_paths: int, seed: int) -> List[float]:
-    """n draws from N(mu_daily, vol_daily^2), deterministic for a seed."""
+    """Generate n draws from N(mu_daily, vol_daily^2), deterministic for a seed.
+
+    Args:
+        mu_daily: Mean daily return.
+        vol_daily: Standard deviation of daily returns.
+        n_paths: Number of draws.
+        seed: RNG seed for reproducibility.
+
+    Returns:
+        List of simulated returns.
+    """
     rng = random.Random(seed)
     return [rng.gauss(mu_daily, vol_daily) for _ in range(n_paths)]
 
@@ -97,14 +151,36 @@ def monte_carlo_var(mu_daily: float, vol_daily: float, alpha: float = 0.05,
                     n_paths: int = 10_000, seed: int = 42) -> float:
     """VaR by simulating from the fitted normal model, then taking the
     empirical quantile. More stable than the parametric quantile for
-    small samples and trivially extensible to fat-tailed draws."""
+    small samples and trivially extensible to fat-tailed draws.
+
+    Args:
+        mu_daily: Mean daily return.
+        vol_daily: Standard deviation of daily returns.
+        alpha: Tail quantile in (0, 1).
+        n_paths: Number of simulation paths (default 10,000).
+        seed: RNG seed (default 42).
+
+    Returns:
+        Positive number = loss at the alpha quantile of simulated returns.
+    """
     sims = _simulate_returns(mu_daily, vol_daily, n_paths, seed)
     return historical_var(sims, alpha)
 
 
 def monte_carlo_cvar(mu_daily: float, vol_daily: float, alpha: float = 0.05,
                      n_paths: int = 10_000, seed: int = 42) -> float:
-    """Expected shortfall of the simulated normal series."""
+    """Expected shortfall of the simulated normal series.
+
+    Args:
+        mu_daily: Mean daily return.
+        vol_daily: Standard deviation of daily returns.
+        alpha: Tail quantile in (0, 1).
+        n_paths: Number of simulation paths (default 10,000).
+        seed: RNG seed (default 42).
+
+    Returns:
+        Positive number = expected loss beyond the VaR cut in simulation.
+    """
     sims = _simulate_returns(mu_daily, vol_daily, n_paths, seed)
     return historical_cvar(sims, alpha)
 
@@ -117,6 +193,16 @@ def cornish_fisher_var(returns: Sequence[float], alpha: float = 0.05) -> float:
     the gap to the parametric engine is precisely the fat-tail signal the
     historical/parametric spread flags — here made explicit rather than
     inferred.
+
+    Args:
+        returns: Sequence of period returns.
+        alpha: Tail quantile in (0, 1).
+
+    Returns:
+        Positive number = loss at the corrected quantile.
+
+    Raises:
+        ValueError: If returns is empty or alpha not in (0, 1).
     """
     _validate_alpha(alpha)
     if not returns:
@@ -134,7 +220,7 @@ def cornish_fisher_var(returns: Sequence[float], alpha: float = 0.05) -> float:
 
 
 def _ln(p: float) -> float:
-    """log with a defined value at 0 (the log-0 edge in the Kupiec test)."""
+    """Safe log: returns 0.0 at p == 0 (handles the log-0 edge in Kupiec)."""
     return 0.0 if p == 0.0 else math.log(p)
 
 
@@ -147,7 +233,17 @@ def kupiec_pof(returns: Sequence[float], var: float, alpha: float = 0.05) -> dic
     model yields a high p_value; a model that breaches too often (or
     never) is flagged.
 
-    Returns {"breaches", "expected", "exceedance_rate", "lr", "p_value"}.
+    Args:
+        returns: Sequence of period returns.
+        var: VaR threshold (positive loss number) to test.
+        alpha: Tail quantile in (0, 1).
+
+    Returns:
+        Dict with keys: "breaches" (int), "expected" (float),
+        "exceedance_rate" (float), "lr" (float), "p_value" (float).
+
+    Raises:
+        ValueError: If returns is empty or alpha not in (0, 1).
     """
     _validate_alpha(alpha)
     if not returns:
@@ -169,12 +265,21 @@ def kupiec_pof(returns: Sequence[float], var: float, alpha: float = 0.05) -> dic
 
 def var_estimate(returns: Sequence[float], alpha: float = 0.05,
                  n_paths: int = 10_000, seed: int = 42) -> dict:
-    """One-call risk report for a return series.
+    """One-call risk report for a return series across all engines.
 
-    Returns a dict keyed by engine name ("historical", "parametric",
-    "monte_carlo", "cornish_fisher"), each with "var" and "cvar"
-    (losses, > 0). The Cornish-Fisher engine has no closed-form CVaR,
-    so it exposes "var" only.
+    Args:
+        returns: Sequence of period returns.
+        alpha: Tail quantile in (0, 1) (default 0.05 = 95% VaR).
+        n_paths: Simulation paths for Monte Carlo (default 10,000).
+        seed: RNG seed for Monte Carlo (default 42).
+
+    Returns:
+        Dict keyed by engine ("historical", "parametric", "monte_carlo",
+        "cornish_fisher"), each with "var" and "cvar" (losses > 0).
+        Cornish-Fisher has no closed-form CVaR, so it exposes "var" only.
+
+    Raises:
+        ValueError: If returns is empty or alpha not in (0, 1).
     """
     _validate_alpha(alpha)
     if not returns:
@@ -203,7 +308,17 @@ def var_estimate(returns: Sequence[float], alpha: float = 0.05,
 # ------------------------------------------------------------------ drawdowns
 
 def drawdown_series(prices: Sequence[float]) -> List[float]:
-    """Per-point drawdown vs the running peak (<= 0 for every point)."""
+    """Per-point drawdown vs the running peak (<= 0 for every point).
+
+    Args:
+        prices: Sequence of price/wealth levels.
+
+    Returns:
+        List of drawdowns (negative fractions, 0.0 at peaks).
+
+    Raises:
+        ValueError: If prices is empty.
+    """
     if not prices:
         raise ValueError("prices series is empty")
     peak = prices[0]
@@ -218,6 +333,16 @@ def max_drawdown(prices: Sequence[float]) -> Tuple[float, int, int]:
     """Largest peak-to-trough decline, returned as (dd, peak_idx, trough_idx).
 
     dd <= 0; for a monotone-up series it is exactly 0.0.
+
+    Args:
+        prices: Sequence of price/wealth levels.
+
+    Returns:
+        Tuple of (drawdown_fraction, peak_index, trough_index).
+        drawdown_fraction is negative (e.g., -0.25 for -25%).
+
+    Raises:
+        ValueError: If prices is empty.
     """
     if not prices:
         raise ValueError("prices series is empty")
@@ -237,7 +362,17 @@ def max_drawdown(prices: Sequence[float]) -> Tuple[float, int, int]:
 
 
 def current_drawdown(prices: Sequence[float]) -> float:
-    """Drawdown at the final observation vs its own running peak."""
+    """Drawdown at the final observation vs its own running peak.
+
+    Args:
+        prices: Sequence of price/wealth levels.
+
+    Returns:
+        Current drawdown fraction (<= 0).
+
+    Raises:
+        ValueError: If prices is empty.
+    """
     dd = drawdown_series(prices)
     return dd[-1]
 
@@ -247,6 +382,12 @@ def longest_drawdown_stretch(prices: Sequence[float]) -> Tuple[int, int, int]:
 
     An "underwater" day is one whose drawdown is below 0. Length is in
     index spans, so a single underwater point has length 1.
+
+    Args:
+        prices: Sequence of price/wealth levels.
+
+    Returns:
+        Tuple of (length, start_index, end_index). Length is 0 if never underwater.
     """
     best = (0, 0, 0)
     start = None
